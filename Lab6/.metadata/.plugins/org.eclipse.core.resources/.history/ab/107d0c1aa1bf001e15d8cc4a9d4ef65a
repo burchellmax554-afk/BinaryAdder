@@ -1,0 +1,22 @@
+/******************************************************************************
+* Assembly EE 244 Assembly Template Code
+*	Assembly language template for EE 244 projects
+*
+*******************************************************************************/
+                .syntax unified        /* define Syntax */
+                .cpu cortex-m4
+                .fpu fpv4-sp-d16
+
+                .globl main            /* make main() global so outside file */
+                                       /* can see it. Required for startup   */
+                .section .text         /* the following is program code      */
+main:                                  /* main() is always entry point      */
+                b main
+
+.section .rodata
+/* place defined constants here */
+
+.section .bss
+/* place RAM variables here */
+
+/*****************************************************************************/

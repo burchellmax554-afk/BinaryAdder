@@ -1,0 +1,18 @@
+13:52:01 **** Incremental Build of configuration Debug for project Lab3 ****
+make -r -j6 all 
+Building target: Lab3.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -Xlinker -Map="Lab3.map" -Xlinker --gc-sections -Xlinker -print-memory-usage -Xlinker --sort-section=alignment -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -T Lab3_Debug.ld -o "Lab3.axf" ./startup/startup_mk22f51212.o  ./board/BasicIO.o ./board/K22FRDM_ClkCfg.o  ./CMSIS/system_MK22F51212.o   
+c:/nxp/mcuxpressoide_11.8.0_1165/ide/plugins/com.nxp.mcuxpresso.tools.win32_11.8.0.202306131047/tools/bin/../lib/gcc/arm-none-eabi/12.2.1/../../../../arm-none-eabi/bin/ld.exe: c:/nxp/mcuxpressoide_11.8.0_1165/ide/plugins/com.nxp.mcuxpresso.tools.win32_11.8.0.202306131047/tools/bin/../lib/gcc/arm-none-eabi/12.2.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libcr_c.a(__weak__main.o): in function `__weak_main':
+__weak__main.c:(.text.__weak_main+0x0): undefined reference to `main'
+Memory region         Used Size  Region Size  %age Used
+   PROGRAM_FLASH:        1712 B       512 KB      0.33%
+      SRAM_UPPER:          8 KB        64 KB     12.50%
+      SRAM_LOWER:          0 GB        64 KB      0.00%
+collect2.exe: error: ld returned 1 exit status
+make[1]: *** [makefile:46: Lab3.axf] Error 1
+make: *** [makefile:37: all] Error 2
+"make -r -j6 all" terminated with exit code 2. Build might be incomplete.
+
+13:52:01 Build Failed. 3 errors, 0 warnings. (took 428ms)
+

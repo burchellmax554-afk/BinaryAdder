@@ -1,0 +1,143 @@
+/******************************************************************************/
+/* Assembly EE 244 Assembly Template Code*/
+/*Assembly language template for EE 244 projects*/
+/*Max Burchell Lab 3*/
+/*******************************************************************************/
+                .syntax unified        /* define Syntax */
+                .cpu cortex-m4
+                .fpu fpv4-sp-d16
+
+                .globl main            /* make main() global so outside file */
+                                       /* can see it. Required for startup   */
+                .section .text         /* the following is program code      */
+/*Pre-Lab: Setting up the pin values*/
+                .equ SIM_SCGC5, 0x40048038 /*Pre-Lab step 1 */
+
+                .equ PORTD_PCR2, 0x4004C008
+                .equ PORTD_PCR3, 0x4004C00C
+                .equ PORTD_PCR4, 0x4004C010
+                .equ PORTB_PCR0, 0x4004A000
+                .equ PORTB_PCR1, 0x4004A004 /*Pre Lab step 2*/
+                .equ PORTB_PCR16, 0x4004A040
+                .equ PORTB_PCR18, 0x4004A048
+                .equ PORTB_PCR19, 0x4004A04C
+
+                .equ GPIOD_PDDR, 0x400FF0D4
+                .equ GPIOB_PDDR, 0x400FF054 /*Pre Lab step 3 */
+
+                .equ GPIOD_PDOR, 0x400FF0C0
+                .equ GPIOB_PDOR, 0x400FF040
+                .equ GPIOD_PCOR, 0x400FF0C8 /*Pre Lab step 4*/
+                .equ GPIOB_PCOR, 0x400FF048
+
+main:                                  /* main() is always entry point      */
+
+        /*Configuring D pins 2-4 as GPIO*/
+                .equ GPIOX_BASE, 0x400FF000 /*Base Port Address*/
+                .equ GPIOD, 0xC0 /*Port D index*/
+                .equ GPCLR_VAL_OUT, 0x1C0100 /*GPCLR assigned value*/
+                ldr r0,=GPIOX_BASE+GPIOD+GPCLR /*Registers loaded into r0*/
+                ldr r1,[r0] /*r0 copied to r1*/
+                ldr r2,=GPCLR_VAL_OUT /*r0 saved in r2*/
+                orr r1,r2 /*Desired bits able to change*/
+                str r1,[r0] /*New value stored in memory*/
+
+        /*Configuring high-register PORTB pins (16,18,19)*/
+                .equ GPIOX_BASE,0x400FF000 /*Base Port Address*/
+                .equ GPIOD,0xC0 /*Port D index*/
+                .equ BIT0,0x01
+                .equ GPCHR,0x84 /*Registered GPCLR index*/
+                .equ GPCLR_VAL_OUT2,0x0D0100 /*Assigns value to GPCLR*/
+                ldr r0,=GPIOX_BASE+GPIOD+GPCHR /*Loads address into r0*/
+                ldr r1,[r0] /*r0 copied into r1*/
+                ldr r2,=GPCLR_VAL_OUT2 /*Value saved into r2*/
+                orr r1,r2 /*Desired bits able to change*/
+                str r1,[r0] /*New value stored in memory*/
+
+        /*Configuring low-register PORTB pins (0,1)*/
+                .equ GPIOX_BASE,0x400FF000 /*Base Port Address*/
+                .equ GPIOB,0xC0 /*Port D index*/
+                .equ BIT0,0x03
+                .equ GPCHR,0x84 /*Registered GPCLR index*/
+                .equ GPCLR_VAL_OUT3,0x0003 /*Assigns value to GPCLR*/
+                ldr r0,=GPIOX_BASE+GPIOD+GPCLR /*Loads address into r0*/
+                ldr r1,[r0] /*r0 copied into r1*/
+                ldr r2,=GPCLR_VAL_OUT3 /*Value saved into r2*/
+                orr r1,r2 /*Desired bits able to change*/
+                str r1,[r0] /*New value stored in memory*/
+
+        /*Bit assignment (2,3,4) to register D*/
+        .equ BIT2, 0x01<<2
+        .equ BIT3, 0x01<<3 /*Sets the bits*/
+        .equ BIT4, 0x01<<4
+        mov r0, #BIT2
+        orr r0, #BIT3
+        orr r0, #BIT4
+
+  /*Bit assignment (0,1,16,18,19) to register B*/
+        .equ BIT5, 0x01<<0
+        .equ BIT6, 0x01<<1 /*Sets the bits*/
+        .equ BIT7, 0x01<<16
+        .equ BIT8, 0x01<<18
+        .equ BIT9, 0x01<<19
+        mov r0, #BIT5
+        orr r0, #BIT6
+        orr r0, #BIT7
+        orr r0, #BIT8
+        orr r0, #BIT9
+
+/*PORTD Output*/
+    movw r2,#:lower16:SIM_SCGC5
+movt r2,#:upper16:SIM_SCGC5
+ldr r0,[r2] // Read SCGC5
+orr r0,#SIM_PORTD // Modify –set PORTA bit
+str r0,[r2] // Write SCGC5
+movw r2,#:lower16:PORTD // Put PORTD address in r2
+movt r2,#:upper16:PORTD
+mov r0,#PORT_PCR_MUX_ALT1 // write MUX ALT1 to PCR
+str r0,[r2,#PCR2]
+movw r2,#:lower16:GPIOD // Put PORTD address in r2
+movt r2,#:upper16:GPIOD
+mov r0,#BIT2 // Make Bit 1 output
+str r0,[r2,#PDDR]
+movw r2,#:lower16:GPIOD // Put PORTD address in r2
+movt r2,#:upper16:GPIOD
+ldr r0,[r2,#PCOR] // Read PDOR
+orr r0,#BIT2 // Modify only bit 2 (make it 0)
+orr r0,#BIT3
+orr r0,#BIT4
+str r0,[r2,#PCOR] // Write PDOR
+
+    /*PORTB Output
+    movw r2,#:lower16:SIM_SCGC5
+movt r2,#:upper16:SIM_SCGC5
+ldr r0,[r2] // Read SCGC5
+orr r0,#SIM_PORTD // Modify –set PORTA bit
+str r0,[r2] // Write SCGC5
+movw r2,#:lower16:PORTD // Put PORTD address in r2
+movt r2,#:upper16:PORTD
+mov r0,#PORT_PCR_MUX_ALT1 // write MUX ALT1 to PCR
+str r0,[r2,#PCR2]
+movw r2,#:lower16:GPIOD // Put PORTD address in r2
+movt r2,#:upper16:GPIOD
+mov r0,#BIT2 // Make Bit 1 output
+str r0,[r2,#PDDR]
+movw r2,#:lower16:GPIOD // Put PORTD address in r2
+movt r2,#:upper16:GPIOD
+ldr r0,[r2,#PCOR] // Read PDOR
+orr r0,#BIT5// Modify only bit 2 (make it 0)
+orr r0,#BIT6
+orr r0,#BIT7
+orr r0,#BIT8
+orr r0,#BIT9
+str r0,[r2,#PCOR] // Write PDOR
+
+                b main
+
+.section .rodata
+/* place defined constants here */
+
+.section .bss
+/* place RAM variables here */
+
+/*****************************************************************************/

@@ -1,0 +1,21 @@
+10:56:59 **** Incremental Build of configuration Debug for project ASMProj ****
+make -r -j6 all 
+Building file: ../source/ASMProj.asm
+Invoking: MCU Assembler
+arm-none-eabi-gcc -c -x assembler-with-cpp -D__REDLIB__ -I../board -I../source -I../ -I../CMSIS -I../startup -g3 -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -D__REDLIB__ -specs=redlib.specs -o "source/ASMProj.o" "../source/ASMProj.asm"
+Finished building: ../source/ASMProj.asm
+ 
+Building target: ASMProj.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -Xlinker -Map="ASMProj.map" -Xlinker --gc-sections -Xlinker -print-memory-usage -Xlinker --sort-section=alignment -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -T ASMProj_Debug.ld -o "ASMProj.axf" ./startup/startup_mk22f51212.o  ./source/ASMProj.o  ./board/BasicIO.o ./board/K22FRDM_ClkCfg.o  ./CMSIS/system_MK22F51212.o   
+Memory region         Used Size  Region Size  %age Used
+   PROGRAM_FLASH:        1948 B       512 KB      0.37%
+      SRAM_UPPER:          8 KB        64 KB     12.50%
+      SRAM_LOWER:          0 GB        64 KB      0.00%
+Finished building target: ASMProj.axf
+ 
+Performing post-build steps
+arm-none-eabi-size "ASMProj.axf"; # arm-none-eabi-objcopy -v -O binary "ASMProj.axf" "ASMProj.bin" ; # checksum -p MK22FN512xxx12 -d "ASMProj.bin";
+   text	   data	    bss	    dec	    hex	filename
+   1948	      0	   8192	  10140	   279c	ASMProj.axf
+ 

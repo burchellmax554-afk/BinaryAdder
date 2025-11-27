@@ -1,0 +1,414 @@
+/******************************************************************************/
+/* Assembly EE 244 Assembly Template Code*/
+/*Assembly language template for EE 244 projects*/
+/*Max Burchell Lab 6*/
+/*******************************************************************************/
+.syntax unified /* define Syntax */
+.cpu cortex-m4
+.fpu fpv4-sp-d16
+.globl main /* make main() global so outside file can see it. Required for startup */
+/* Equates */
+.equ SIM_SCGC5,0x40048038
+.equ SIM_PORTB,0x01<<10
+.equ SIM_PORTC,0x01<<11 //Setting clock for ports
+.equ SIM_PORTD,0x01<<12
+.equ PORTB,0x4004A000
+.equ PORTC,0x4004B000
+.equ PORTD,0x4004C000
+.equ GPIOB,0x400FF040
+.equ GPIOC,0x400FF080
+.equ GPIOD,0x400FF0C0
+.equ PDIR,0x10
+.equ PCR0,4*0
+.equ PCR1,4*1
+.equ PCR2,4*2
+.equ PCR3,4*3
+.equ PCR4,4*4
+.equ PCR5,4*5 //PCR Values Assigned
+.equ PCR6,4*6
+.equ PCR7,4*7
+.equ PCR8,4*8
+.equ PCR9,4*9
+.equ PCR16,4*16
+.equ PCR18,4*18
+.equ PCR19,4*19
+.equ BIT0,0x01<<0
+.equ BIT1,0x01<<1
+.equ BIT2,0x01<<2
+.equ BIT3,0x01<<3
+.equ BIT4,0x01<<4
+.equ BIT5,0x01<<5
+.equ BIT6,0x01<<6 //Bit Value Assignment
+.equ BIT7,0x01<<7
+.equ BIT8,0x01<<8
+.equ BIT9,0x01<<9
+.equ BIT16,0x01<<16
+.equ BIT18,0x01<<18
+.equ BIT19,0x01<<19
+.equ PORT_PCR_PE_ON,BIT1 // index = 4 bytes * n
+.equ PORT_PCR_PS_UP,BIT0 //Bit 8 equals 1
+.equ PORT_PCR_MUX_ALT1,0x100 //Bit 8 equals 1
+// index =(5 registers up * 4 bytes each)
+.equ PDDR,4*5
+.equ PDOR,0x00
+.equ PCOR, 4*2
+.section .text /* the following is program code */
+
+
+
+main: /* main() is always entry point */
+
+BL IOShieldInit //initialization
+BL SwAnalysis //Finds the 2 values to be added
+BL LEDWriteMain //Adds the 2 values and finds the correct execution from this
+B main
+
+/*****************************************************************************************/
+SwAnalysis:
+//Count how many switches are on
+/***********************Moving PORTC to PORTD************/
+movw r4,#:lower16:GPIOC // Put GPIOC address in r4
+movt r4,#:upper16:GPIOC
+ldr r3,[r4,#PDIR] // read from PORTC02 and save in r3
+asr r3,#2
+ldr r1,=0
+
+/****************************BIT2********************/
+and r0,r3,0x1
+add r1,r1,r0
+asr r3,#1
+/********************BIT3************************/
+and r0,r3,0x1
+add r1,r1,r0
+asr r3,#1
+/********************BIT4************************/
+and r0,r3,0x1
+add r1,r1,r0
+asr r3,#1
+/********************BIT0***********************/
+and r0,r3,0x1
+add r1,r1,r0
+asr r3,#1
+/********************BIT1************************/
+and r0,r3,0x1
+add r1,r1,r0
+asr r3,#1
+/********************BIT16************************/
+and r0,r3,0x1
+add r1,r1,r0
+asr r3,#1
+/********************BIT18************************/
+and r0,r3,0x1
+add r1,r1,r0
+asr r3,#1
+/********************BIT19************************/
+and r0,r3,0x1
+add r1,r1,r0
+asr r3,#1
+
+bx lr
+
+//Counting the 1st switch value
+mov r7, #8 //The amount to add in on the first loop
+loop1:
+//r0 is the switch value when in the loop
+//r1 is now the counter
+//r3 is total switches set to 1
+CMP r1,#4
+BEQ loop1end //Sets up loop2
+cmp r0,#1 //If r0=1
+BEQ SkipLoop1 //Skip loop if r0=0
+add r1,r1,#1 //Counter goes up 1
+add r3,r3,r7 //Total goes up by 8,4,2,1
+lsr r7,r7,#1 //The amount to add is halved each loop
+B loop1
+SkipLoop1:
+add r1,#1 //Add 1 to counter if it's not not 8
+lsr r7,r7,#1 //The amount to add is halved each loop
+B loop1
+loop1end: //Saves and resets values before 2nd loop
+mov r5, r3 //Value 1 loads into r5
+mov r7,#8 //resets for 2nd set of values
+mov r3,#0 //Reset r3 for the second loop
+
+loop2:
+//r0 is the switch value when in the loop
+//r1 is now the counter
+//r3 is total switches set to 1
+CMP r1,#8
+BEQ loop2end //Saves required values
+cmp r0,#1 //If r0=1
+BEQ SkipLoop2 //Skip loop if r0=0
+add r1,r1,#1 //Counter goes up 1
+add r3,r3,r7 //Total goes up by 8,4,2,1
+lsr r7,r7,#1 //The amount to add is halved each loop
+B loop2
+SkipLoop2:
+add r1,#1 //Add 1 to counter if it's not 8
+lsr r7,r7,#1 //The amount to add is halved each loop because its in binary
+B loop2
+loop2end://saves value 2 as r6
+mov r6, r3 //Value 2 loads into r6
+
+bx lr
+
+/******************************************************************************************/
+LEDWriteMain: /*Analyzes which output program to go with and executes it*/
+add r7, r5, r6 //2 values added
+cmp r7, #18 //r7 now holds the total
+bgt InvalidNumber //>18
+cmp r7, #9
+bgt LEDDecimal //>10
+B LEDWrite //>0 && <10
+/*****************************************************************************************/
+
+LEDDecimal: //Value to display if over 10
+sub r7,r7,#10 //Get r7 down to the correct range
+
+ldr r7,=SegTable2 //SegTable 2 enables the decimal point
+ldrb r7,[r0,r1]
+
+//Bit2
+ldr r0,=GPIOD+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#2,#1 /* copy bit #2 (which became in position 0 and save in position 2 in r1) */
+str r1,[r0] // update the LED
+
+//Bit3
+asr r7,#1 //remove lower 2 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOD+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#3,#1 /* copy bit #3 (which became in position 0 and save in position 3 in r1) */
+str r1,[r0] // update the LED
+
+//Bit4
+asr r7,#1 //remove lower 2 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOD+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#4,#1 /* copy bit #4 (which became in position 0 and save in position 4 in r1) */
+str r1,[r0] // update the LED
+
+//Bit0
+asr r7,#1 //remove lower 5 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#0,#1 /* copy bit #0 (save in position 0 in r1) */
+str r1,[r0] // update the LED
+
+//Bit1
+asr r7,#1 //remove lower 6 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#1,#1 /* copy bit #1 (which became in position 0 and save in position 1 in r1) */
+str r1,[r0] // update the LED
+
+//Bit16
+asr r7,#1 //remove lower 7 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#16,#1 /* copy bit #16 (which became in position 0 and save in position 16 in r1) */
+str r1,[r0] // update the LED
+
+//Bit18
+asr r7,#1 //remove lower 18 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#18,#1 /* copy bit #18 (which became in position 0 and save in position 18 in r1) */
+str r1,[r0] // update the LED
+
+//Bit19
+asr r7,#1 //remove lower 9 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#19,#1 /* copy bit #19 (which became in position 0 and save in position 19 in r1) */
+str r1,[r0] // update the LED
+
+bx lr
+/*****************************************************************************************/
+
+
+LEDWrite:
+ldr r7,=SegTable1 //SegTable1 is used as <10
+ldrb r7,[r0,r1]
+
+//Bit2
+ldr r0,=GPIOD+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#2,#1 /* copy bit #2 (which became in position 0 and save in position 2 in r1) */
+str r1,[r0] // update the LED
+
+//Bit3
+asr r7,#1 //remove lower 2 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOD+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#3,#1 /* copy bit #3 (which became in position 0 and save in position 3 in r1) */
+str r1,[r0] // update the LED
+
+//Bit4
+asr r7,#1 //remove lower 2 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOD+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#4,#1 /* copy bit #4 (which became in position 0 and save in position 4 in r1) */
+str r1,[r0] // update the LED
+
+//Bit0
+asr r7,#1 //remove lower 5 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#0,#1 /* copy bit #0 (save in position 0 in r1) */
+str r1,[r0] // update the LED
+
+//Bit1
+asr r7,#1 //remove lower 6 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#1,#1 /* copy bit #1 (which became in position 0 and save in position 1 in r1) */
+str r1,[r0] // update the LED
+
+//Bit16
+asr r7,#1 //remove lower 7 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#16,#1 /* copy bit #16 (which became in position 0 and save in position 16 in r1) */
+str r1,[r0] // update the LED
+
+//Bit18
+asr r7,#1 //remove lower 18 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#18,#1 /* copy bit #18 (which became in position 0 and save in position 18 in r1) */
+str r1,[r0] // update the LED
+
+//Bit19
+asr r7,#1 //remove lower 9 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#19,#1 /* copy bit #19 (which became in position 0 and save in position 19 in r1) */
+str r1,[r0] // update the LED
+
+bx lr
+/*****************************************************************************************/
+
+
+InvalidNumber: //>18
+ldr r7,=0xBF //This hex turns only B18 on
+ldrb r7,[r0,r1]
+
+//Bit2
+ldr r0,=GPIOD+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#2,#1 /* copy bit #2 (which became in position 0 and save in position 2 in r1) */
+str r1,[r0] // update the LED
+
+//Bit3
+asr r7,#1 //remove lower 2 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOD+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#3,#1 /* copy bit #3 (which became in position 0 and save in position 3 in r1) */
+str r1,[r0] // update the LED
+
+//Bit4
+asr r7,#1 //remove lower 2 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOD+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#4,#1 /* copy bit #4 (which became in position 0 and save in position 4 in r1) */
+str r1,[r0] // update the LED
+
+//Bit0
+asr r7,#1 //remove lower 5 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#0,#1 /* copy bit #0 (save in position 0 in r1) */
+str r1,[r0] // update the LED
+
+//Bit1
+asr r7,#1 //remove lower 6 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#1,#1 /* copy bit #1 (which became in position 0 and save in position 1 in r1) */
+str r1,[r0] // update the LED
+
+//Bit16
+asr r7,#1 //remove lower 7 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#16,#1 /* copy bit #16 (which became in position 0 and save in position 16 in r1) */
+str r1,[r0] // update the LED
+
+//Bit18
+asr r7,#1 //remove lower 18 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#18,#1 /* copy bit #18 (which became in position 0 and save in position 18 in r1) */
+str r1,[r0] // update the LED
+
+//Bit19
+asr r7,#1 //remove lower 9 bits (PORTC00 & PORTC01)
+ldr r0,=GPIOB+PDOR //load D_PDOR address to r0
+ldr r1,[r0] // copy contents to r1 (LED status)
+bfi r1,r7,#19,#1 /* copy bit #19 (which became in position 0 and save in position 19 in r1) */
+str r1,[r0] // update the LED
+
+bx lr
+/*****************************************************************************************/
+
+IOShieldInit://Initialize the ports
+/********Load SIM_SCGC5**********************/
+movw r2,#:lower16:SIM_SCGC5
+movt r2,#:upper16:SIM_SCGC5 //SIM_SCGC5 laoded into r2
+ldr r0,[r2] // Read SCGC5
+/*******************PORTD Stuff*********************************/
+ldr r0,=SIM_PORTD|SIM_PORTC|SIM_PORTB // Modify –set PORTD bit
+str r0,[r2] // Write SCGC5
+movw r2,#:lower16:PORTD // Put PORTD address in r2
+movt r2,#:upper16:PORTD
+mov r0,#PORT_PCR_MUX_ALT1 // write MUX ALT1 to PCR
+str r0,[r2,#PCR2] //r2 gets stored in r0
+str r0,[r2,#PCR3]
+str r0,[r2,#PCR4]
+movw r2,#:lower16:GPIOD // Put PORTA address in r2
+movt r2,#:upper16:GPIOD
+mov r0,#BIT2|BIT3|BIT4 // Makes Bits 2,3,4 outputs in PORTD
+str r0,[r2,#PDDR]
+/***********PORTB Stuff**********/
+movw r2,#:lower16:PORTB // Put PORTB address in r2
+movt r2,#:upper16:PORTB
+mov r0,#PORT_PCR_MUX_ALT1 // write MUX ALT1 to PCR
+str r0,[r2,#PCR0] //r2 gets stored in r0
+str r0,[r2,#PCR1] //r2 gets stored in r0
+str r0,[r2,#PCR16] //r2 gets stored in r0
+str r0,[r2,#PCR18] //r2 gets stored in r0
+str r0,[r2,#PCR19] //r2 gets stored in r0
+movw r2,#:lower16:GPIOB // Put PORTA address in r2
+movt r2,#:upper16:GPIOB
+orr r0,#BIT0|BIT1 // Puts Bits 0,1 outputs in PORTB
+str r0,[r2,#PDDR]
+orr r0, #BIT16|BIT18|BIT19 //Bits 16,18,19 are now outputs as well
+str r0, [r2,#PDDR]
+/************PORTC Stuff**************/
+/* Configure PORTC bit2 for ALT1 and pull up enabled */
+movw r2,#:lower16:PORTC // Put PORTC address in r2
+movt r2,#:upper16:PORTC
+movw r0,#PORT_PCR_MUX_ALT1|PORT_PCR_PE_ON|PORT_PCR_PS_UP
+str r0,[r2,#PCR2]
+str r0,[r2,#PCR3]
+str r0,[r2,#PCR4]
+str r0,[r2,#PCR5]
+str r0,[r2,#PCR6]
+str r0,[r2,#PCR7]
+str r0,[r2,#PCR8]
+str r0,[r2,#PCR9]
+
+bx lr
+/*****************************************************************************************/
+
+
+
+
+.section .rodata
+/* place defined constants here */
+SegTable1:.byte 0xC0 /*0*/, 0xF9 /*1*/, 0xA4 /*2*/, 0xB0 /*3*/, 0x99 /*4*/, 0x92 /*5*/, 0x82 /*6*/, 0xF8 /*7*/, 0x80 /*8*/, 0x90 /*9*/
+SegTable2:.byte 0x40 /*0*/, 0x79 /*1*/, 0x24 /*2*/, 0x30 /*3*/, 0x19 /*4*/, 0x12 /*5*/, 0x02 /*6*/, 0x78 /*7*/, 0x00 /*8*/, 0x10 /*9*/
+.section .bss
+/* place RAM variables here */
+/*****************************************************************************/

@@ -1,0 +1,69 @@
+/******************************************************************************
+* Assembly EE 244 Lab 1 Demo Code
+*Turn on the RED LED
+* GPIO example
+*
+* Wala Saadeh, 10/26/2022
+******************************************************************************/
+.syntax unified /* define Syntax */
+.cpu cortex-m4
+.fpu fpv4-sp-d16
+.globl main /* make main() global so outside file can see it. Required for startup */
+/* Equates */
+.equ SIM_SCGC5,0x40048038
+.equ SIM_PORTD,0x01<<12
+.equ PORTD, 0x4004C000
+.equ PORT_PCR_MUX_ALT1,0x100 //Bit 8 equals 1
+.equ GPIOD, 0x400FF0C0 //Base address
+.equ PCR2,4*2
+.equ PCR3, 4*3
+.equ PCR4, 4*4
+.equ PDDR,4*5 // index =(5 registers up * 4 bytes each)
+.equ BIT2,0x01<<2
+.equ BIT3, 0x01<<3
+.equ BIT4, 0x01<<4
+
+.equ PDOR,4*0
+.equ PCOR,4*2
+
+
+.section .text /* the following is program code */
+
+
+main: /* main() is always entry point */
+
+
+/* Turn on clock for PORTD */
+movw r2,#:lower16:SIM_SCGC5
+movt r2,#:upper16:SIM_SCGC5
+ldr r0,[r2] // Read SCGC5
+orr r0,#SIM_PORTD //set clock for PORTD
+str r0,[r2] // Write SCGC5
+
+
+movw r2,#:lower16:PORTD // Put PORTD address in r2
+movt r2,#:upper16:PORTD
+mov r0,#PORT_PCR_MUX_ALT1 // write MUX ALT1 to PCR
+str r0,[r2,#PCR2]
+str r0,[r2, #PCR3]
+str ro, [r2, #PCR4]
+
+
+movw r2,#:lower16:GPIOD // Put PORTD address in r2
+movt r2,#:upper16:GPIOD
+mov r0,#BIT2|BIT3|BIT4 // Make Bit 1 output
+str r0,[r2,#PDDR]
+
+
+
+movw r2,#:lower16:GPIOD // Put PORTD address in r2
+movt r2,#:upper16:GPIOD
+ldr r0,[r2,#PCOR] // Read PDOR
+orr r0,#BIT2|BIT3|BIT4 // Modify only bit 2 (make it 0)
+str r0,[r2,#PCOR] // Write PDOR
+
+b main
+.section .rodata
+/* place defined constants here */
+.section .bss
+/* place RAM variables here */
